@@ -4,12 +4,15 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 
 interface NavbarProps {}
 
-export const Navbar: React.FC<NavbarProps> = () => {
-   const user = undefined;
-   const isAdmin = false;
+export const Navbar: React.FC<NavbarProps> = async () => {
+   const { getUser } = getKindeServerSession();
+   const user = await getUser();
+
+   const isAdmin = user?.email === process.env.ADMIN_EMAIL;
 
    return (
       <nav className="sticky z-[100] h-14 inset-x-0 top-0 w-full border-b border-gray-200 bg-white/75 backdrop-blur-lg transition-all">
@@ -52,7 +55,7 @@ export const Navbar: React.FC<NavbarProps> = () => {
                         </Link>
                         <Link
                            className={buttonVariants({ size: "sm", variant: "ghost" })}
-                           href="/configure/login">
+                           href="/api/auth/login">
                            Login
                         </Link>
                         <Separator orientation="vertical" className="h-8 bg-zinc-200" />
