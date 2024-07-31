@@ -5,4 +5,4 @@ export const PHONES = [
    { src: "testimonials/4.jpg" },
    { src: "testimonials/5.jpg" },
    { src: "testimonials/6.jpg" },
-];
+] as const;

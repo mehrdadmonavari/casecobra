@@ -9,9 +9,9 @@ export const STEPS = [
       description: "Make the case yours",
       url: "/design",
    },
-   { 
+   {
       name: "Step 3: Summary",
       description: "Preview your final design",
-      url: "/preview"
+      url: "/preview",
    },
-];
+] as const;
