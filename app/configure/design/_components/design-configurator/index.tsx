@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import NextImage from "next/image";
 import { Rnd } from "react-rnd";
-import { cn, formatPrice } from "@/lib/utils";
+import { base64ToBlob, cn, formatPrice } from "@/lib/utils";
 import { ResizeHandleComponent } from "./resize-handle-component";
 import { PHONE_COLORS } from "@/constants/phone-colors";
 import { PHONE_MODELS } from "@/constants/phone-models";
@@ -18,9 +18,12 @@ import {
    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { ArrowRight, Check, ChevronsUpDown } from "lucide-react";
 import { MATERIALS } from "@/constants/materials";
 import { FINISHES } from "@/constants/finishes";
+import { BASE_PRICE } from "@/constants/base-price";
+import { useUploadThing } from "@/lib/uploadthing";
+import { useToast } from "@/components/ui/use-toast";
 
 interface DesignConfiguratorProps {
    configId: string;
@@ -33,6 +36,7 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
    imageUrl,
    imageDimensions,
 }) => {
+   const { toast } = useToast();
    const [options, setOptions] = useState<{
       color: (typeof PHONE_COLORS)[number];
       model: (typeof PHONE_MODELS.options)[number];
@@ -44,12 +48,77 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
       material: MATERIALS.options[0],
       finish: FINISHES.options[0],
    });
+   const [renderedDimentions, setRenderedDimentions] = useState({
+      width: imageDimensions.width / 4,
+      height: imageDimensions.height / 4,
+   });
+   const [renderedPosition, setRenderedPosition] = useState({ x: 150, y: 205 });
+
+   const phoneCaseRef = useRef<HTMLDivElement>(null);
+   const containerRef = useRef<HTMLDivElement>(null);
+
+   const { startUpload } = useUploadThing("imageUploader");
+
+   const saveConfiguration = async () => {
+      try {
+         const {
+            left: caseLeft,
+            top: caseTop,
+            width,
+            height,
+         } = phoneCaseRef.current!.getBoundingClientRect();
+
+         const { left: containerLeft, top: containerTop } =
+            containerRef.current!.getBoundingClientRect();
+
+         const leftOffset = caseLeft - containerLeft;
+         const topOffset = caseTop - containerTop;
+
+         const actualX = renderedPosition.x - leftOffset;
+         const actualY = renderedPosition.y - topOffset;
+
+         const canvas = document.createElement("canvas");
+         canvas.width = width;
+         canvas.height = height;
+         const ctx = canvas.getContext("2d");
+
+         const userImage = new Image();
+         userImage.crossOrigin = "anonymous";
+         userImage.src = imageUrl;
+         await new Promise((resolve) => (userImage.onload = resolve));
+
+         ctx?.drawImage(
+            userImage,
+            actualX,
+            actualY,
+            renderedDimentions.width,
+            renderedDimentions.height
+         );
+
+         const base64 = canvas.toDataURL();
+         const base64Data = base64.split(",")[1];
+
+         const blob = base64ToBlob(base64Data, "image/png");
+         const file = new File([blob], "fileName.png", { type: "image/png" });
+
+         await startUpload([file], { configId });
+      } catch (err) {
+         toast({
+            title: "Something went wrong",
+            description: "There was a problem saving your config, please try again.",
+            variant: "destructive",
+         });
+      }
+   };
 
    return (
-      <div className="relative grid grid-cols-3 mt-20 mb-20 pb-20">
-         <div className="relative h-[37.5rem] overflow-hidden col-span-2 w-full max-w-4xl flex justify-center items-center rounded-lg border-2 border-dashed border-gray-300 p-12 text-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+      <div className="relative grid grid-cols-1 lg:grid-cols-3 mt-20 mb-20 pb-20">
+         <div
+            ref={containerRef}
+            className="relative h-[37.5rem] overflow-hidden col-span-2 w-full max-w-4xl flex justify-center items-center rounded-lg border-2 border-dashed border-gray-300 p-12 text-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
             <div className="relative w-60 bg-opacity-50 pointer-events-none aspect-[896/1831]">
                <AspectRatio
+                  ref={phoneCaseRef}
                   ratio={896 / 1831}
                   className="pointer-events-none relative z-50 aspect-[896/1831] w-full">
                   <NextImage
@@ -81,6 +150,14 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
                   bottomLeft: <ResizeHandleComponent />,
                   bottomRight: <ResizeHandleComponent />,
                }}
+               onResizeStop={(_, __, ref, ___, { x, y }) => {
+                  setRenderedDimentions({
+                     width: parseInt(ref.style.width.slice(0, -2)),
+                     height: parseInt(ref.style.height.slice(0, -2)),
+                  });
+                  setRenderedPosition({ x, y });
+               }}
+               onDragStop={(_, { x, y }) => setRenderedPosition({ x, y })}
                className="absolute z-20 border-[3px] border-primary">
                <div className="relative w-full h-full">
                   <NextImage
@@ -93,11 +170,7 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
             </Rnd>
          </div>
 
-         <div className="relative h-[37.5rem] flex flex-col bg-white">
-            <div
-               className="absolute z-10 inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white pointer-events-none"
-               aria-hidden={true}
-            />
+         <div className="h-[37.5rem] w-full col-span-full lg:col-span-1 mt-8 lg:mt-0 flex flex-col bg-white">
             <ScrollArea className="relative flex-1 overflow-auto">
                <div className="px-8 pb-12 pt-8">
                   <h2 className="tracking-tight font-bold text-3xl">
@@ -120,7 +193,9 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
                                     className={({ active, checked }) =>
                                        cn(
                                           "relative -m-0.5 p-0.5 flex justify-center items-center rounded-full border-2 border-transparent cursor-pointer active:ring-0 focus:ring-0 active:outline-none focus:outline-none",
-                                          { [`border-${color.tw}`]: active || checked }
+                                          {
+                                             [`border-${color.tw}`]: active || checked,
+                                          }
                                        )
                                     }>
                                     <span
@@ -174,7 +249,7 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
                               </DropdownMenuContent>
                            </DropdownMenu>
                         </div>
-                        
+
                         {[MATERIALS, FINISHES].map(
                            ({ name, options: selectableOptions }) => (
                               <RadioGroup
@@ -194,7 +269,9 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
                                           className={({ active, checked }) =>
                                              cn(
                                                 "relative block sm:flex sm:justify-between cursor-pointer rounded-lg bg-white px-6 py-4 shadow-sm border-2 border-zinc-200 ring-0 outline-none focus:ring-0 focus:outline-none",
-                                                { "border-primary": active || checked }
+                                                {
+                                                   "border-primary": active || checked,
+                                                }
                                              )
                                           }>
                                           <span className="flex items-center">
@@ -232,6 +309,28 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
                   </div>
                </div>
             </ScrollArea>
+
+            <div className="relative w-full px-8 h-16 bg-white">
+               <div
+                  className="absolute z-10 inset-x-0 bottom-16 h-14 bg-gradient-to-t from-red-200 pointer-events-none"
+                  aria-hidden={true}
+               />
+               <div className="h-px w-full bg-zinc-200" />
+               <div className="w-full h-full flex justify-end items-center">
+                  <div className="w-full flex items-center gap-6">
+                     <p className="font-medium whitespace-nowrap">
+                        {formatPrice(
+                           (BASE_PRICE + options.material.price + options.finish.price) /
+                              100
+                        )}
+                     </p>
+                     <Button onClick={saveConfiguration} className="w-full" size="sm">
+                        Continue
+                        <ArrowRight className="size-4 ml-1.5 inline" />
+                     </Button>
+                  </div>
+               </div>
+            </div>
          </div>
       </div>
    );
