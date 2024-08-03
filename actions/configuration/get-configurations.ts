@@ -1,3 +1,5 @@
-export const getConfigurations = async () => {
+"use server";
+
+export async function getConfigurations() {
    return [];
-};
+}
