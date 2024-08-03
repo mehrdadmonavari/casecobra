@@ -24,6 +24,12 @@ import { FINISHES } from "@/constants/finishes";
 import { BASE_PRICE } from "@/constants/base-price";
 import { useUploadThing } from "@/lib/uploadthing";
 import { useToast } from "@/components/ui/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import {
+   SaveConfigurationType,
+   saveConfiguration as actionSaveConfig,
+} from "@/actions/configuration/seve-configuration";
+import { useRouter } from "next/navigation";
 
 interface DesignConfiguratorProps {
    configId: string;
@@ -37,6 +43,7 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
    imageDimensions,
 }) => {
    const { toast } = useToast();
+   const router = useRouter();
    const [options, setOptions] = useState<{
       color: (typeof PHONE_COLORS)[number];
       model: (typeof PHONE_MODELS.options)[number];
@@ -58,6 +65,23 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
    const containerRef = useRef<HTMLDivElement>(null);
 
    const { startUpload } = useUploadThing("imageUploader");
+
+   const { mutate: saveConfig } = useMutation({
+      mutationKey: ["save-configuration"],
+      mutationFn: async (args: SaveConfigurationType) => {
+         await Promise.all([saveConfiguration(), actionSaveConfig(args)]);
+      },
+      onSuccess: () => {
+         router.push(`/configure/preview?id=${configId}`);
+      },
+      onError: () => {
+         toast({
+            title: "Something went wrong",
+            description: "There was an error on our end. Please try again.",
+            variant: "destructive",
+         });
+      },
+   });
 
    const saveConfiguration = async () => {
       try {
@@ -324,7 +348,18 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
                               100
                         )}
                      </p>
-                     <Button onClick={saveConfiguration} className="w-full" size="sm">
+                     <Button
+                        onClick={() =>
+                           saveConfig({
+                              configId,
+                              color: options.color.value,
+                              model: options.model.value,
+                              material: options.material.value,
+                              finish: options.finish.value,
+                           })
+                        }
+                        className="w-full"
+                        size="sm">
                         Continue
                         <ArrowRight className="size-4 ml-1.5 inline" />
                      </Button>
