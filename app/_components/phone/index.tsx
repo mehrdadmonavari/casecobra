@@ -22,7 +22,7 @@ export const Phone: React.FC<PhoneProps> = ({
             alt="phone image"
          />
          <div className="absolute -z-10 inset-0">
-            <img src={imgSrc} className="objcet-cover" alt="overlaying phone image" />
+            <img src={imgSrc} className="objcet-cover min-w-full min-h-full" alt="overlaying phone image" />
          </div>
       </div>
    );
