@@ -1,13 +1,14 @@
 "use client";
 
 import { Phone } from "@/app/_components/phone";
-import { Button } from "@/components/ui/button";
+import { CustomButton } from "@/components/custom/custom-button";
 import { BASE_PRICE } from "@/constants/base-price";
 import { PHONE_COLORS } from "@/constants/phone-colors";
 import { PHONE_MODELS } from "@/constants/phone-models";
 import { PRODUCT_PRICES } from "@/constants/product-prices";
 import { cn, formatPrice } from "@/lib/utils";
 import { Configuration } from "@prisma/client";
+import { useMutation } from "@tanstack/react-query";
 import { ArrowRight, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -39,6 +40,10 @@ export const DesignPreview: React.FC<DesignPreviewProps> = ({ configuration }) =
       totalPrice += PRODUCT_PRICES.material.polycarbonate;
    if (configuration.finish === "textured") totalPrice += PRODUCT_PRICES.finish.textured;
 
+   // const {} = useMutation({mutationKey: ["get-checkout-session"], mutationFn: () => {
+
+   // }})
+
    return (
       <>
          <div
@@ -47,7 +52,7 @@ export const DesignPreview: React.FC<DesignPreviewProps> = ({ configuration }) =
             <Confetti active={showConfetti} config={{ elementCount: 200, spread: 90 }} />
          </div>
          <div className="grid grid-cols-1 sm:grid-cols-12 sm:grid-rows-1 sm:gap-x-6 md:gap-x-8 lg:gap-x-12 text-sm mt-20">
-            <div className="sm:col-span-4 md:col-span-3 md:row-span-2 md:row-end-2">
+            <div className="px-8 sm:px-0 sm:col-span-4 md:col-span-3 md:row-span-2 md:row-end-2">
                <Phone
                   className={cn(`bg-${tw}`)}
                   imgSrc={configuration.croppedImageUrl!}
@@ -85,7 +90,7 @@ export const DesignPreview: React.FC<DesignPreviewProps> = ({ configuration }) =
                </div>
 
                <div className="mt-8">
-                  <div className="bg-gray-50 p-6 sm:p-8 sm:rounded-lg">
+                  <div className="bg-gray-100 p-6 sm:p-8 sm:rounded-lg shadow-md">
                      <div className="flow-root text-sm">
                         <div className="flex justify-between items-center py-1 mt-2">
                            <p className="text-gray-600">Base Price </p>
@@ -126,9 +131,9 @@ export const DesignPreview: React.FC<DesignPreviewProps> = ({ configuration }) =
                   </div>
 
                   <div className="flex justify-end mt-8 pb-12">
-                     <Button className="px-4 sm:px-6 lg:px-8">
+                     <CustomButton isLoading={true} disabled={true} loadingText="loading" className="px-4 sm:px-6 lg:px-8">
                         Check out <ArrowRight className="size-4 ml-1.5 inline" />{" "}
-                     </Button>
+                     </CustomButton>
                   </div>
                </div>
             </div>

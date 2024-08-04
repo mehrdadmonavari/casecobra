@@ -9,7 +9,7 @@ export const Steps = () => {
    const pathname = usePathname();
 
    return (
-      <ol className="rounded-md bg-white lg:flex lg:rounded-none lg:border-1 lg:border-r lg:border-gray-200">
+      <ol className="rounded-md bg-white lg:flex lg:rounded-none lg:border-1 lg:border-x lg:border-gray-200">
          {STEPS.map((step, i) => {
             const isCurrent = pathname.endsWith(step.url);
             const isCompleted = STEPS.slice(i + 1).some((step) =>
