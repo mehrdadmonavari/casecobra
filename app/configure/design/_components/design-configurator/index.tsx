@@ -336,7 +336,7 @@ export const DesignConfigurator: React.FC<DesignConfiguratorProps> = ({
 
             <div className="relative w-full px-8 h-16 bg-white">
                <div
-                  className="absolute z-10 inset-x-0 bottom-16 h-14 bg-gradient-to-t from-red-200 pointer-events-none"
+                  className="absolute z-10 inset-x-0 bottom-16 h-14 bg-gradient-to-t from-white pointer-events-none"
                   aria-hidden={true}
                />
                <div className="h-px w-full bg-zinc-200" />

@@ -1,25 +1,31 @@
 "use client";
 
-import { Phone } from "@/app/_components/phone";
+import React, { useEffect, useState } from "react";
+import Confetti from "react-dom-confetti";
+import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import { Configuration } from "@prisma/client";
+import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
+import { ArrowRight, Check } from "lucide-react";
+import { createCheckoutSession } from "@/actions/configuration/create-checkout-session";
+import { cn, formatPrice } from "@/lib/utils";
 import { CustomButton } from "@/components/custom/custom-button";
+import { toast } from "@/components/ui/use-toast";
+import { Phone } from "@/app/_components/phone";
 import { BASE_PRICE } from "@/constants/base-price";
 import { PHONE_COLORS } from "@/constants/phone-colors";
 import { PHONE_MODELS } from "@/constants/phone-models";
 import { PRODUCT_PRICES } from "@/constants/product-prices";
-import { cn, formatPrice } from "@/lib/utils";
-import { Configuration } from "@prisma/client";
-import { useMutation } from "@tanstack/react-query";
-import { ArrowRight, Check } from "lucide-react";
-import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import Confetti from "react-dom-confetti";
+import LoginModal from "@/app/_components/login-modal";
 
 interface DesignPreviewProps {
    configuration: Configuration;
 }
 
 export const DesignPreview: React.FC<DesignPreviewProps> = ({ configuration }) => {
-   const [showConfetti, setShowConfetti] = useState(false);
+   const [showConfetti, setShowConfetti] = useState<boolean>(false);
+   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+   const { user } = useKindeBrowserClient();
    useEffect(() => {
       setShowConfetti(true);
    }, []);
@@ -40,9 +46,30 @@ export const DesignPreview: React.FC<DesignPreviewProps> = ({ configuration }) =
       totalPrice += PRODUCT_PRICES.material.polycarbonate;
    if (configuration.finish === "textured") totalPrice += PRODUCT_PRICES.finish.textured;
 
-   // const {} = useMutation({mutationKey: ["get-checkout-session"], mutationFn: () => {
+   const { mutate: paymentMutation } = useMutation({
+      mutationKey: ["get-checkout-session"],
+      mutationFn: createCheckoutSession,
+      onSuccess: ({ url }) => {
+         if (url) router.push(url);
+         else throw new Error("unable to retrieve payment URL.");
+      },
+      onError: () => {
+         toast({
+            title: "Something went wrong",
+            description: "There was an error on our end. Please try again",
+            variant: "destructive",
+         });
+      },
+   });
 
-   // }})
+   const handleCheckout = () => {
+      if (user) {
+         paymentMutation({ configId: configuration.id });
+      } else {
+         localStorage.setItem("configurationId", configuration.id);
+         setIsLoginModalOpen(true);
+      }
+   };
 
    return (
       <>
@@ -51,6 +78,9 @@ export const DesignPreview: React.FC<DesignPreviewProps> = ({ configuration }) =
             aria-hidden="true">
             <Confetti active={showConfetti} config={{ elementCount: 200, spread: 90 }} />
          </div>
+
+         <LoginModal isOpen={isLoginModalOpen} setIsOpen={setIsLoginModalOpen} />
+
          <div className="grid grid-cols-1 sm:grid-cols-12 sm:grid-rows-1 sm:gap-x-6 md:gap-x-8 lg:gap-x-12 text-sm mt-20">
             <div className="px-8 sm:px-0 sm:col-span-4 md:col-span-3 md:row-span-2 md:row-end-2">
                <Phone
@@ -131,7 +161,12 @@ export const DesignPreview: React.FC<DesignPreviewProps> = ({ configuration }) =
                   </div>
 
                   <div className="flex justify-end mt-8 pb-12">
-                     <CustomButton isLoading={true} disabled={true} loadingText="loading" className="px-4 sm:px-6 lg:px-8">
+                     <CustomButton
+                        onClick={() => handleCheckout()}
+                        isLoading={false}
+                        disabled={false}
+                        loadingText="loading"
+                        className="px-4 sm:px-6 lg:px-8">
                         Check out <ArrowRight className="size-4 ml-1.5 inline" />{" "}
                      </CustomButton>
                   </div>
